@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>微信聊天界面</title>
+    <style>
+        html,
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: rgb(237, 237, 237);
+            height: 100%;
+            overflow: hidden;
+        }
+
+        textarea {
+            padding: 0;
+        }
+
+        #chat_root_container {
+            display: none;
+            flex-direction: column;
+            height: 100%;
+            width: 100%;
+            right: -100%;
+            z-index: 10;
+            position: fixed;
+        }
+
+
+        #top_container {
+            /* flex: 1; */
+            height: 30px;
+            /* overflow-y 属性用于设置如何处理元素内容的垂直溢出情况——也就是说，当元素中的内容超出了分配给它的垂直空间时该如何处理。
+        设置为 auto 意味着浏览器会在必要时在元素的垂直方向上提供滚动条。如果内容适合在元素内，则不显示滚动条。这使得页面布局更为灵活和响应式，适合于内容长度可变的情景。 */
+            overflow-y: auto;
+            padding: 10px;
+            background-color: rgb(237, 237, 237);
+            display: flex;
+            border-bottom: 0.5px solid #ddd;
+            justify-content: space-between;
+            /* text-align: center; */
+        }
+
+        #top_title {
+            padding: 3px;
+            font-size: 17px;
+            font-weight: 500;
+            /* 确保文本在一行显示，不换行 */
+            white-space: nowrap;
+
+            /* 超出部分隐藏 */
+            overflow: hidden;
+
+            /* 显示省略号 */
+            text-overflow: ellipsis;
+            text-align: center;
+        }
+
+        #top_connect_btn {
+            font-size: 12px;
+            font-weight: 900;
+            padding-top: 3px;
+            text-align: left;
+            padding-left: 8px;
+            width: 20%;
+            border: none;
+            background-color: rgba(113, 97, 77, 0);
+            line-height: 12px;
+            min-width: 75px;
+            color: rgb(77, 160, 92);
+        }
+
+        #top_connect_right {
+            font-size: 15px;
+            font-weight: 500;
+            width: 20%;
+            border: none;
+            min-width: 75px;
+            background-color: rgba(113, 97, 77, 0);
+            color: rgb(60, 60, 60);
+            text-align: right;
+            padding-right: 8px;
+        }
+
+        #chat_container {
+            flex: 1;
+            /* overflow-y 属性用于设置如何处理元素内容的垂直溢出情况——也就是说，当元素中的内容超出了分配给它的垂直空间时该如何处理。
+        设置为 auto 意味着浏览器会在必要时在元素的垂直方向上提供滚动条。如果内容适合在元素内，则不显示滚动条。这使得页面布局更为灵活和响应式，适合于内容长度可变的情景。 */
+            overflow-y: auto;
+            padding: 10px;
+            background-color: rgb(237, 237, 237);
+            display: flex;
+            flex-direction: column;
+            max-height: calc(100% - 70px);
+        }
+
+        #message_container {
+            display: flex;
+            padding: 10px;
+            background-color: rgb(247, 247, 247);
+            border-top: 1px solid #ddd;
+        }
+
+        #message {
+            flex: 1;
+            font-size: 16px;
+            padding: 8px 5px 8px 8px;
+            border-radius: 5px;
+            outline: none;
+            resize: none;
+            max-height: 150px;
+            height: 20px;
+            overflow-y: auto;
+            border-color: rgba(19, 19, 19, 0);
+            line-height: 20px;
+            /* 设定行高 */
+            /* 隐藏所有滚动条 */
+            /* overflow: hidden; */
+        }
+
+        #message::-webkit-scrollbar {
+            width: 0px;
+            height: 10px;
+        }
+
+        #message::-webkit-scrollbar-track {
+            background: #ffffff;
+        }
+
+        #message::-webkit-scrollbar-thumb {
+            background: rgb(50, 50, 50);
+        }
+
+        #message::-webkit-scrollbar-thumb:hover {
+            background: rgb(236, 192, 192);
+        }
+
+        #sendMessage {
+            margin-left: 10px;
+            /* cursor: pointer;设置鼠标悬浮的时候的样式 */
+            cursor: pointer;
+
+            /* flex-shrink 属性定义了当父元素的空间不足时，子元素的缩小比例。默认值是 1，意味着所有的 flex 子元素将等比例缩小以适应父容器。
+        设置为 0 时，该元素不会随着 flex 容器内的空间减少而缩小。这对于确保某些关键元素（如按钮或标签），即使在容器空间紧张时也保持其尺寸非常有用。 */
+            flex-shrink: 0;
+            align-self: flex-end;
+            width: 65px;
+            /* 调整为剩余空间 */
+            height: 34px;
+            /* 确保与 textarea 一样高 */
+            font-size: 16px;
+            font-weight: 900;
+            /* margin-bottom: 4px; */
+            box-sizing: border-box;
+            background-color: rgb(86, 190, 105);
+            color: aliceblue;
+            border: none;
+            border-radius: 8px;
+            border-color: rgba(19, 19, 19, 0);
+            white-space: nowrap;
+            /* 禁止文本换行 */
+        }
+
+        .message {
+            /* margin-bottom: 10px; */
+            padding: 10px 0px 0px 0px;
+            border-radius: 10px;
+            max-width: calc(100% - 52px);
+            /* 通过使用word-wrap: break-word;，可以确保这些长单词在到达容器边缘时自动折行至下一行，从而避免溢出。 */
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            /* 同 word-wrap */
+            gap: 1;
+        }
+
+        .sender {
+            align-self: flex-end;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .user_icon {
+            width: 42px;
+            height: 42px;
+            background-color: rgb(220, 223, 224);
+            border-radius: 5px;
+            flex-shrink: 0;
+            display: flex;
+            /* color: #817373; */
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            /* 为了使 absolute 定位工作，需要设置为 relative */
+            position: relative;
+        }
+
+        .my_icon {
+            width: 42px;
+        }
+
+        .my_icon::before {
+            content: " ";
+            position: absolute;
+            left: -12px;
+            width: 0;
+            height: 0;
+            border-top: 6.5px solid transparent;
+            border-bottom: 6.5px solid transparent;
+            border-left: 9px solid rgb(168, 233, 121);
+        }
+
+        .other_icon {
+            width: 42px;
+        }
+
+        .other_icon::before {
+            content: " ";
+            position: absolute;
+            left: 45px;
+            width: 0;
+            height: 0;
+            border-top: 6.5px solid transparent;
+            border-bottom: 6.5px solid transparent;
+            border-right: 9px solid rgb(255, 255, 255);
+        }
+
+        .my_message {
+            background-color: rgb(168, 233, 121);
+            margin-right: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            max-width: min(calc(100% - 72px), 85%);
+            /* 通过使用word-wrap: break-word;，可以确保这些长单词在到达容器边缘时自动折行至下一行，从而避免溢出。 */
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .other_message {
+            background-color: rgb(255, 255, 255);
+            margin-left: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            max-width: min(calc(100% - 72px), 85%);
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .receiver {
+            align-self: flex-start;
+            display: flex;
+            justify-content: flex-start;
+        }
+
+        @keyframes slideIn {
+            from {
+                right: -100%;
+            }
+
+            to {
+                right: 0;
+            }
+        }
+
+        /* 页面滑出样式 */
+        @keyframes slideOut {
+            from {
+                right: 0;
+            }
+
+            to {
+                right: -100%;
+            }
+        }
+
+        :focus {
+            /* 去除默认轮廓 */
+    outline: none;
+}
+
+        #core_vc {
+            flex-direction: column;
+            height: 100%;
+            width: 100%;
+            display:flex;
+            position: fixed;
+            z-index: 1;
+            background:  rgb(237, 237, 237);
+        }
+
+        #friend_item {
+            height: 65px;
+            background-color: rgb(255, 255, 255);
+            display: flex;
+        }
+
+        #friend_icon {
+            height: 43px;
+            width: 43px;
+            margin: 11px 11px 11px 14.3px;
+            background-color: rgb(220, 223, 224);
+            border-radius: 5px;
+            flex-shrink: 0;
+        }
+
+        #friend_name_container {
+            height: calc(100% - 1px);
+            width: calc(100% - 69px);
+            background-color: rgb(255, 255, 255);
+            border-bottom: 0.9px solid rgb(230, 230, 230);
+            font-size: 15px;
+            font-weight: 400;
+        }
+        #friend_name{
+            margin: 12px 10px 0px 0px;
+        }
+        #friend_desc{
+            margin: 1px 10px 11px 0px;
+            font-size: 12.5px;
+            color:rgb(166, 166, 166);
+        }
+
+    </style>
+</head>
+
+<body>
+    <!-- 新页面 -->
+    <div id="core_vc">
+        <div id="top_container"> 
+            <div></div>
+            <div id="top_title">聊天软件</div>
+            <div></div>
+        </div>
+        <div id="friend_item">
+            <div id="friend_icon"></div>
+            <div id="friend_name_container">
+                <div id="friend_name">小明</div>
+                <div id="friend_desc">小明爱吃可乐</div>
+            </div>
+        </div>
+        <div id="friend_item">
+            <div id="friend_icon"></div>
+
+            <div id="friend_name_container">
+                <div id="friend_name">小明出水口收款单</div>
+            </div>
+        </div>
+        <div id="friend_item">
+            <div id="friend_icon"></div>
+            <div id="friend_name_container"></div>
+        </div>
+
+    </div>
+    <div id="chat_root_container">
+        <div id="top_container"> <button id="top_connect_btn">&bull; 连接中 </button> 
+            <div id="top_title">聊天软件</div>
+            <button id="top_connect_right">&bull; &bull; &bull;</button>
+        </div>
+        <div id="chat_container"></div>
+        <div id="message_container">
+            <textarea id="message" placeholder="输入消息..."></textarea>
+            <button id="sendMessage">发送</button>
+        </div>
+    </div>
+    <script>
+
+        const chatBox = document.getElementById('chat_container');
+        const messageInput = document.getElementById('message');
+        const sendButton = document.getElementById('sendMessage');
+        const messageContainer = document.getElementById('message_container');
+
+        messageInput.addEventListener('input', function () {
+            updateMessageInputHeight();
+        });
+
+        function updateMessageInputHeight() {
+            // 获取计算后的总内边距和边框厚度
+            const paddingTop = parseInt(window.getComputedStyle(messageInput).paddingTop, 10);
+            const paddingBottom = parseInt(window.getComputedStyle(messageInput).paddingBottom, 10);
+            const borderTop = parseInt(window.getComputedStyle(messageInput).borderTopWidth, 10);
+            const borderBottom = parseInt(window.getComputedStyle(messageInput).borderBottomWidth, 10);
+
+            const totalVerticalPaddingAndBorders = paddingTop + paddingBottom + borderTop + borderBottom;
+
+            // 重置高度并重新计算
+            messageInput.style.height = 'auto';
+            messageInput.style.height = messageInput.scrollHeight - totalVerticalPaddingAndBorders + 'px';
+            const lineHeight = parseInt(window.getComputedStyle(messageInput).lineHeight, 10);
+
+            if (messageInput.scrollHeight < 56) {
+                messageInput.style.height = lineHeight + 'px';
+            } else {
+                const lines = (messageInput.scrollHeight - 16) / 20;
+                messageInput.style.height = lines * lineHeight + 'px';
+            }
+        }
+
+        function sendMessage() {
+            // 获取输入框的值
+            const message = messageInput.value.trim();
+            if (message) {
+                appendMessage("我", message);
+                messageInput.value = '';
+                setTimeout(() => updateMessageInputHeight(), 10);
+                setTimeout(() => appendMessage("对方", "这是自动回复消息"), 1000);
+            }
+        }
+
+        messageInput.addEventListener('keydown', function (event) {
+            // 检查按下的键是否是回车键（键码为13）
+            if (event.keyCode === 13 || event.key === 'Enter') {
+                event.preventDefault(); // 阻止默认行为，比如表单提交
+                sendMessage()
+            }
+        });
+
+        sendButton.onclick = () => {
+            sendMessage()
+        };
+
+        function appendMessage(sender, message) {
+            const messageElement = new DocumentFragment();
+            const nameDiv = document.createElement('div');
+            nameDiv.textContent = sender + '';
+            nameDiv.style.fontWeight = 'bold';
+            nameDiv.className = 'user_icon ' + (sender === "我" ? 'my_icon' : 'other_icon');
+
+            const messageText = document.createElement('span');
+            messageText.textContent = message;
+            messageText.className = sender === "我" ? 'my_message' : 'other_message';
+
+            if (sender === "我") {
+                messageElement.append(messageText, nameDiv);
+            } else {
+                messageElement.append(nameDiv, messageText);
+            }
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message ' + (sender === "我" ? 'sender' : 'receiver');
+            messageDiv.appendChild(messageElement);
+
+            chatBox.appendChild(messageDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function adjustLayout() {
+            const viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+            const messageContainerHeight = messageContainer.offsetHeight;
+            chatBox.style.height = `calc(${viewportHeight}px - ${messageContainerHeight}px - 20px)`;
+            chatBox.scrollTop = chatBox.scrollHeight; // 滚动到底部
+        }
+
+        window.addEventListener('resize', adjustLayout);
+        window.addEventListener('load', adjustLayout);
+
+        messageInput.addEventListener('focus', adjustLayout);
+        messageInput.addEventListener('blur', adjustLayout);
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', adjustLayout);
+        }
+    </script>
+    <script name="页面切换响应事件">
+        const chatVC = document.getElementById('chat_root_container');
+
+        document.getElementById('friend_item').addEventListener('click', function () {
+            chatVC.style.display = 'flex';
+            chatVC.style.animation = 'slideIn 0.3s forwards'; // 动画持续0.5秒并在完成时保持最后的状态
+        });
+
+        document.getElementById('top_connect_btn').addEventListener('click', function () {
+            closeChatVC();
+        });
+
+        let touchStartX = 0;
+        let touchEndX = 0;
+        let isSwiping = false; // 用于记录是否为滑动操作
+        let startX;
+        let startY;
+
+        // 这两句的目的是为了防止某些浏览器例如qq浏览器
+        document.addEventListener('touchstart', function (event) {
+            if (chatVC.style.display == 'flex') {
+                startX = event.touches[0].clientX;
+                // startY = event.touches[0].clientY;
+                isSwiping = false; // 重置滑动状态
+            }
+        }, { passive: false });
+
+        document.addEventListener('touchmove', function (event) {
+            if (chatVC.style.display == 'flex') {
+                const deltaX = Math.abs(event.touches[0].clientX - startX);
+                // const deltaY = Math.abs(event.touches[0].clientY - startY);
+                if (deltaX > 10 && startX < 240) { // 仅当滑动距离大于某个值时才认为是滑动
+                    isSwiping = true;
+                    event.preventDefault();
+                }
+            }
+        }, { passive: false });
+
+        chatVC.addEventListener('touchstart', function (event) {
+            touchStartX = event.changedTouches[0].screenX;
+        }, { passive: false });
+
+        chatVC.addEventListener('touchmove', function (event) {
+            touchEndX = event.changedTouches[0].screenX;
+        }, { passive: false });
+
+        chatVC.addEventListener('touchend', function (event) {
+            // 检查滑动长度是否足够，这里的 100 可根据需要调整
+            if (touchStartX < 150 && (touchEndX - touchStartX) > 100) {
+                // alert(touchEndX + "   " + touchStartX);
+                closeChatVC();
+            }
+        }, { passive: false });
+
+        function closeChatVC() {
+            // 执行滑入滑出动画并返回
+            chatVC.style.animation = 'slideOut 0.3s forwards';
+            touchStartX = 0;
+            touchEndX = 0;
+            setTimeout(() => {
+                chatVC.style.display = 'none';
+            }, 300);
+        }
+    </script>
+</body>
+
+</html>
